@@ -1,8 +1,6 @@
 import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from '@google/generative-ai';
 import { NextResponse } from 'next/server';
 import pdf from 'pdf-parse';
-import axios from 'axios';
-import * as cheerio from 'cheerio';
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 
@@ -14,21 +12,6 @@ const safetySettings = [
 ];
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-
-async function scrapeUrl(url: string) {
-    try {
-        const { data } = await axios.get(url, { headers: { 'User-Agent': 'Mozilla/5.0' } });
-        const $ = cheerio.load(data);
-        let text = '';
-        $('p, h1, h2, h3, article, li').each((i, elem) => {
-            text += $(elem).text() + ' ';
-        });
-        return text.replace(/\s\s+/g, ' ').trim().substring(0, 8000);
-    } catch (error) {
-        console.error(`Error fetching URL ${url}:`, error);
-        return `Error: Could not fetch content from the URL.`;
-    }
-}
 
 export async function POST(request: Request) {
     try {
