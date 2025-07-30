@@ -1,7 +1,10 @@
 import type { NextConfig } from "next";
 
-const nextConfig: NextConfig = {
-  /* config options here */
+const nextConfig = {
+  experimental: {
+    // This is the recommended fix for libraries that cause build issues in the Next.js server environment.
+    serverComponentsExternalPackages: ['pdf-parse'],
+  },
 };
 
-export default nextConfig;
+module.exports = nextConfig;
