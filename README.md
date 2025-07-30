@@ -1,36 +1,122 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# AI-Powered Chatbot with File Integration
 
-## Getting Started
+This is a modern, feature-rich chatbot application built with **Next.js** and powered by the **Google Gemini API**. It provides a seamless, real-time conversational experience with support for file uploads (images and PDFs), a dynamic and appealing user interface, and practical features like chat export.
 
-First, run the development server:
+---
+
+## 🚀 Features
+
+- **Real-Time Streaming**: Get instant, real-time responses from the AI as they are being generated.
+- **File Uploads**: Upload and ask questions about images and PDF documents.
+- **Modern UI**: A sleek, responsive, and animated user interface built with Tailwind CSS.
+- **Predefined Prompts**: Start conversations easily with a set of example prompts.
+- **Code Highlighting**: Code snippets in the chat are automatically highlighted for readability.
+- **Export Chat**: Download your entire conversation history as a `.txt` file.
+- **Error Handling**: Gracefully handles API errors and provides clear feedback to the user.
+
+---
+
+## 🛠 Tech Stack
+
+- **Framework**: [Next.js](https://nextjs.org/)
+- **Language**: TypeScript
+- **Styling**: Tailwind CSS
+- **AI**: Google Gemini API
+- **UI Components**: [shadcn/ui](https://ui.shadcn.com/)
+- **File Parsing**: [pdf-parse](https://www.npmjs.com/package/pdf-parse)
+
+---
+
+## ⚙️ Getting Started
+
+Follow these steps to get the project up and running on your local machine.
+
+### ✅ Prerequisites
+
+- **Node.js** (v18 or later)
+- **npm**, **yarn**, or **pnpm**
+
+### 📥 1. Clone the Repository
+
+```bash
+git clone https://github.com/your-username/ai-chatbot.git
+cd ai-chatbot
+```
+
+### 📦 2. Install Dependencies
+
+```bash
+npm install
+```
+
+### 🔐 3. Set Up Environment Variables
+
+You’ll need a **Google Gemini API key** to run the application.
+
+1. Create a file named `.env.local` in the root directory.
+2. Add your API key:
+
+```env
+GEMINI_API_KEY=your_gemini_api_key_here
+```
+
+### 🧪 4. Run the Development Server
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) in your browser to see the app in action.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+---
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 💬 Usage
 
-## Learn More
+- **Start a Conversation**: Click the "Asking" button on the landing page to open the chat window.
+- **Send a Message**: Type your message in the input field and press Enter or click the send icon.
+- **Upload a File**: Click the paperclip icon to upload an image or a PDF file.
+- **Use Predefined Prompts**: Use the sample prompts to quickly get started when chat is empty.
+- **Export Chat**: Click the download icon in the header to save your chat as a `.txt` file.
 
-To learn more about Next.js, take a look at the following resources:
+---
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 📁 Project Structure
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```
+/src
+├── app
+│   ├── api
+│   │   └── chat
+│   │       └── route.ts        # Backend API for handling chat logic
+│   ├── globals.css             # Global styles and theme
+│   ├── layout.tsx              # Main layout for the application
+│   └── page.tsx                # The main chatbot UI and landing page
+├── assets
+│   └── images
+│       └── my-logo.png         # Your logo file
+├── components
+│   ├── Header.tsx              # The main header for the chat window
+│   └── ui                      # UI components from shadcn/ui
+└── lib
+    └── utils.ts                # Utility functions
+```
 
-## Deploy on Vercel
+---
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## ☁️ Deployment
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+The easiest way to deploy this **Next.js** application is with **[Vercel](https://vercel.com/)**.
+
+1. Push your code to a GitHub repository.
+2. Go to [vercel.com](https://vercel.com), connect your GitHub account.
+3. Import your repository and follow the setup steps.
+4. Add your environment variable (`GEMINI_API_KEY`) in the Vercel dashboard.
+
+---
+
+## 👏 Acknowledgements
+
+- [Google Gemini API](https://ai.google.dev/)
+- [Next.js](https://nextjs.org/)
+- [Tailwind CSS](https://tailwindcss.com/)
+- [ShadCN UI](https://ui.shadcn.com/)
