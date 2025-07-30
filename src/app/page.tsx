@@ -106,7 +106,7 @@ export default function Chatbot() {
             const { value, done } = await reader.read();
             if (done) break;
             
-            const chunk = decoder.decode(value, { stream: true });
+            let chunk = decoder.decode(value, { stream: true });
 
             if (chunk.includes("||TOKEN_DATA||")) {
                 const parts = chunk.split("||TOKEN_DATA||");
@@ -248,11 +248,7 @@ export default function Chatbot() {
             </div>
             <h1 className="text-5xl font-bold">
                 <span className="italic font-medium text-muted-foreground">Let's start </span>
-                <Button
-                    onClick={() => setIsChatOpen(true)}
-                    variant="link"
-                    className="text-5xl font-bold p-0 h-auto leading-none align-baseline text-primary underline-offset-8 hover:text-primary/80 transition-all hover:tracking-wider"
-                >
+                <Button onClick={() => setIsChatOpen(true)} variant="link" className="text-5xl font-bold p-0 h-auto leading-none align-baseline text-primary underline-offset-8 hover:text-primary/80 transition-all hover:tracking-wider">
                     asking
                 </Button>
             </h1>
@@ -260,12 +256,7 @@ export default function Chatbot() {
       ) : (
         <div className={`w-full max-w-4xl h-full transition-all duration-300 animate-in fade-in zoom-in-95`} onDragEnter={handleDragEnter}>
           <div className="relative flex flex-col w-full h-full rounded-2xl bg-card/80 text-foreground backdrop-blur-2xl border shadow-2xl overflow-hidden">
-            {isDragging && (
-                <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-black/50 backdrop-blur-sm" onDragLeave={handleDragLeave} onDrop={handleDrop} onDragOver={(e) => e.preventDefault()}>
-                    <Download className="w-16 h-16 mb-4" />
-                    <p className="text-xl font-semibold">Drop your file here</p>
-                </div>
-            )}
+            {isDragging && (<div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-black/50 backdrop-blur-sm" onDragLeave={handleDragLeave} onDrop={handleDrop} onDragOver={(e) => e.preventDefault()}><Download className="w-16 h-16 mb-4" /><p className="text-xl font-semibold">Drop your file here</p></div>)}
             <header className="flex items-center justify-between p-4 border-b flex-shrink-0">
                 <div className="flex items-center gap-4">
                     <Avatar className="w-12 h-12"><AvatarFallback className="bg-primary text-primary-foreground"><BotIcon /></AvatarFallback></Avatar>

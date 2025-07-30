@@ -49,7 +49,6 @@ export async function POST(request: Request) {
                 result = await chat.sendMessageStream(promptParts);
                 break; 
             } catch (error: any) {
-                const errorText = error.toString();
                 if (error.status === 503 && attempt < maxRetries - 1) {
                     console.log(`Attempt ${attempt + 1} failed: Model overloaded. Retrying in ${delay / 1000}s...`);
                     await sleep(delay);
@@ -92,6 +91,9 @@ export async function POST(request: Request) {
     } catch (error: any) {
         console.error("Chat API error:", error);
         
+        if (error.status === 400) {
+            return new NextResponse("API key is invalid or expired. Please check your credentials.", { status: 400 });
+        }
         if (error.status === 429) {
             return new NextResponse("You have exceeded your API request limit. Please try again later or check your plan.", { status: 429 });
         }
