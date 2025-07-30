@@ -1,8 +1,8 @@
 import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from '@google/generative-ai';
 import { NextResponse } from 'next/server';
-import { extractText } from 'pdf-ts'; // Using a new, more reliable PDF library
+import pdf from 'pdf-parse'; // Reverted to pdf-parse for better compatibility
 import axios from 'axios';
-import cheerio from 'cheerio';
+import * as cheerio from 'cheerio'; // Corrected Cheerio import
 
 // Initialize Gemini AI
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
@@ -50,8 +50,8 @@ export async function POST(request: Request) {
                     inlineData: { mimeType: file.type, data: Buffer.from(buffer).toString("base64") },
                 });
             } else if (file.type === 'application/pdf') {
-                const pdf_text = await extractText(Buffer.from(buffer));
-                promptParts.push(`\n--- PDF CONTENT ---\n${pdf_text}\n--- END PDF CONTENT ---\n`);
+                const data = await pdf(Buffer.from(buffer));
+                promptParts.push(`\n--- PDF CONTENT ---\n${data.text}\n--- END PDF CONTENT ---\n`);
             }
         }
         
