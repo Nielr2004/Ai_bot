@@ -1,11 +1,11 @@
 import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from '@google/generative-ai';
 import { NextResponse } from 'next/server';
 import pdf from 'pdf-parse';
+import axios from 'axios';
+import * as cheerio from 'cheerio';
 
-// Initialize Gemini AI
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 
-// Gemini safety settings
 const safetySettings = [
   { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE },
   { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE },
@@ -13,8 +13,22 @@ const safetySettings = [
   { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE },
 ];
 
-// Helper function to introduce a delay
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+async function scrapeUrl(url: string) {
+    try {
+        const { data } = await axios.get(url, { headers: { 'User-Agent': 'Mozilla/5.0' } });
+        const $ = cheerio.load(data);
+        let text = '';
+        $('p, h1, h2, h3, article, li').each((i, elem) => {
+            text += $(elem).text() + ' ';
+        });
+        return text.replace(/\s\s+/g, ' ').trim().substring(0, 8000);
+    } catch (error) {
+        console.error(`Error fetching URL ${url}:`, error);
+        return `Error: Could not fetch content from the URL.`;
+    }
+}
 
 export async function POST(request: Request) {
     try {
@@ -42,35 +56,32 @@ export async function POST(request: Request) {
         
         promptParts.push(message);
 
-        // --- Exponential Backoff Logic ---
         let result;
         const maxRetries = 3;
         let attempt = 0;
-        let delay = 1000; // Start with a 1-second delay
+        let delay = 1000;
 
         while (attempt < maxRetries) {
             try {
                 result = await chat.sendMessageStream(promptParts);
-                break; // Success, exit the loop
+                break; 
             } catch (error: any) {
-                if (error.status === 503 && attempt < maxRetries - 1) {
+                const errorText = error.toString();
+                if (errorText.includes('503') && attempt < maxRetries - 1) {
                     console.log(`Attempt ${attempt + 1} failed: Model overloaded. Retrying in ${delay / 1000}s...`);
                     await sleep(delay);
-                    delay *= 2; // Double the delay for the next attempt
+                    delay *= 2;
                     attempt++;
                 } else {
-                    // If it's the last attempt or a different error, re-throw to be caught by the outer catch block
                     throw error;
                 }
             }
         }
 
         if (!result) {
-            // This will now only be reached if all retries fail with a 503 error
             throw new Error("The AI model is currently overloaded. Please try again in a few moments.");
         }
 
-        // Create a new ReadableStream to send the response
         const stream = new ReadableStream({
             async start(controller) {
                 for await (const chunk of result.stream) {
@@ -97,8 +108,8 @@ export async function POST(request: Request) {
 
     } catch (error: any) {
         console.error("Chat API error:", error);
-        // Provide a more specific error message to the frontend
-        if (error.status === 503 || error.message.includes("overloaded")) {
+        const errorMessage = error.toString();
+        if (errorMessage.includes('503') || errorMessage.includes("overloaded")) {
             return new NextResponse("The AI model is currently busy. Please try again in a moment.", { status: 503 });
         }
         return new NextResponse("An internal server error occurred.", { status: 500 });
