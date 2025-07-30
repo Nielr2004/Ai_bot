@@ -12,6 +12,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { marked } from 'marked';
 import hljs from 'highlight.js/lib/core';
 import 'highlight.js/styles/atom-one-dark.css';
+import Header from '@/components/Header'; 
 
 // --- Type Definitions ---
 interface Message {
@@ -31,6 +32,13 @@ interface FilePreview {
   url: string;
 }
 
+const examplePrompts = [
+    { title: "Plan a trip", prompt: "Plan a 3-day trip to Paris for a solo traveler on a budget." },
+    { title: "Explain a concept", prompt: "Explain quantum computing in simple terms." },
+    { title: "Write a story", prompt: "Write a short story about a robot who discovers music." },
+    { title: "Code something", prompt: "Write a python script to scrape the headlines from a news website." },
+];
+
 // --- Main Chatbot Component ---
 export default function Chatbot() {
   // --- State Management ---
@@ -49,6 +57,7 @@ export default function Chatbot() {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const chatContainerRef = useRef<HTMLDivElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
 
   // --- Effects ---
@@ -64,6 +73,29 @@ export default function Chatbot() {
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+
+    // Add copy buttons to code blocks after messages render
+    const addCopyButtons = () => {
+        chatContainerRef.current?.querySelectorAll('pre').forEach(pre => {
+            if (pre.querySelector('.copy-button')) return; // Avoid adding duplicate buttons
+
+            const button = document.createElement('button');
+            button.className = 'copy-button';
+            button.innerText = 'Copy';
+            pre.style.position = 'relative';
+            pre.appendChild(button);
+
+            button.addEventListener('click', () => {
+                const code = pre.querySelector('code')?.innerText || '';
+                navigator.clipboard.writeText(code);
+                button.innerText = 'Copied!';
+                setTimeout(() => {
+                    button.innerText = 'Copy';
+                }, 2000);
+            });
+        });
+    };
+    addCopyButtons();
   }, [messages, isGenerating]);
 
   // --- Core Functions ---
@@ -82,6 +114,10 @@ export default function Chatbot() {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+  };
+
+  const handlePromptButtonClick = (prompt: string) => {
+    handleSendMessage(prompt);
   };
 
   const streamBotResponse = async (formData: FormData) => {
@@ -140,14 +176,14 @@ export default function Chatbot() {
     }
   };
 
-  const handleSendMessage = () => {
-    if (!input.trim() && !selectedFile) return;
+  const handleSendMessage = (content: string, file?: File | null) => {
+    if (!content.trim() && !file) return;
 
     const newUserMessage: Message = {
       id: `msg-${Date.now()}`,
       role: 'user',
-      content: input,
-      file: selectedFile ? { name: selectedFile.name, type: selectedFile.type, url: URL.createObjectURL(selectedFile) } : undefined
+      content: content,
+      file: file ? { name: file.name, type: file.type, url: URL.createObjectURL(file) } : undefined
     };
 
     setMessages(prev => [...prev, newUserMessage]);
@@ -158,10 +194,10 @@ export default function Chatbot() {
         parts: [{ text: msg.content }]
     }));
 
-    formData.append('message', input);
+    formData.append('message', content);
     formData.append('history', JSON.stringify(history));
-    if (selectedFile) {
-        formData.append('file', selectedFile);
+    if (file) {
+        formData.append('file', file);
     }
 
     streamBotResponse(formData);
@@ -239,49 +275,52 @@ export default function Chatbot() {
   if (!hasMounted) return null;
 
   return (
-    <div className="flex h-screen w-screen items-center justify-center bg-background p-4">
+    <div className={`h-screen w-screen p-4 ${!isChatOpen ? 'aurora-background' : 'bg-background'}`}>
       {!isChatOpen ? (
-        <div className="flex flex-col items-center justify-center text-center gap-8 animate-in fade-in zoom-in-95 duration-500">
-            <div className="relative">
-                <div className="absolute -inset-2 bg-primary/10 rounded-full blur-2xl animate-pulse"></div>
-                <BotIcon className="w-24 h-24 text-primary relative" />
+        <div className="flex h-full w-full flex-col items-center justify-center text-center gap-8 animate-in fade-in zoom-in-95 duration-500">
+            <div className="relative float-animation">
+                <div className="absolute -inset-4 bg-primary/10 rounded-full blur-3xl"></div>
+                <BotIcon className="w-28 h-28 text-primary relative" />
             </div>
-            <h1 className="text-5xl font-bold">
+            <h1 className="text-6xl font-bold z-10">
                 <span className="italic font-medium text-muted-foreground">Let's start </span>
-                <Button onClick={() => setIsChatOpen(true)} variant="link" className="text-5xl font-bold p-0 h-auto leading-none align-baseline text-primary underline-offset-8 hover:text-primary/80 transition-all hover:tracking-wider">
+                <Button onClick={() => setIsChatOpen(true)} variant="link" className="text-6xl font-bold p-0 h-auto leading-none align-baseline text-primary underline-offset-[12px] hover:text-primary/80 transition-all hover:tracking-wider">
                     asking
                 </Button>
             </h1>
         </div>
       ) : (
-        <div className={`w-full max-w-4xl h-full transition-all duration-300 animate-in fade-in zoom-in-95`} onDragEnter={handleDragEnter}>
+        <div className={`w-full max-w-4xl h-full mx-auto transition-all duration-300 animate-in fade-in zoom-in-95`} onDragEnter={handleDragEnter}>
           <div className="relative flex flex-col w-full h-full rounded-2xl bg-card/80 text-foreground backdrop-blur-2xl border shadow-2xl overflow-hidden">
             {isDragging && (<div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-black/50 backdrop-blur-sm" onDragLeave={handleDragLeave} onDrop={handleDrop} onDragOver={(e) => e.preventDefault()}><Download className="w-16 h-16 mb-4" /><p className="text-xl font-semibold">Drop your file here</p></div>)}
-            <header className="flex items-center justify-between p-4 border-b flex-shrink-0">
-                <div className="flex items-center gap-4">
-                    <Avatar className="w-12 h-12"><AvatarFallback className="bg-primary text-primary-foreground"><BotIcon /></AvatarFallback></Avatar>
-                    <div>
-                        <h2 className="text-lg font-semibold">AI Assistant</h2>
-                        <div className="flex items-center gap-2 text-sm text-green-500">
-                            <span className="relative flex h-2 w-2"><span className="absolute inline-flex w-full h-full bg-green-400 rounded-full opacity-75 animate-ping"></span><span className="relative inline-flex w-2 h-2 bg-green-500 rounded-full"></span></span>
-                            Online
+            <Header 
+              tokenCount={tokenCount}
+              exportChatLog={exportChatLog}
+              clearConversation={clearConversation}
+              closeChat={() => setIsChatOpen(false)}
+            />
+            <ScrollArea className="flex-grow p-6" ref={chatContainerRef}>
+              <div className="space-y-8">
+                {messages.length === 0 && (
+                  <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground animate-in fade-in duration-500">
+                    <BotIcon className="w-16 h-16 mb-4" />
+                    <h3 className="text-lg font-semibold mb-2">Start the conversation</h3>
+                    <p className="text-sm mb-6">Ask me anything or try one of these examples:</p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full max-w-2xl">
+                      {examplePrompts.map((item, i) => (
+                        <div key={i} className="prompt-card" onClick={() => handlePromptButtonClick(item.prompt)}>
+                            <p className="font-semibold">{item.title}</p>
+                            <p className="text-sm text-muted-foreground">{item.prompt}</p>
                         </div>
+                      ))}
                     </div>
-                </div>
-                <div className="flex items-center gap-2">
-                    <TooltipProvider><Tooltip><TooltipTrigger asChild><div className="flex items-center gap-2 px-3 py-1 text-sm font-medium bg-muted rounded-full"><Zap className="w-4 h-4 text-muted-foreground" /><span>{tokenCount.in + tokenCount.out}</span></div></TooltipTrigger><TooltipContent><p>{tokenCount.in} (in) + {tokenCount.out} (out) Tokens</p></TooltipContent></Tooltip></TooltipProvider>
-                    <Button variant="ghost" size="icon" onClick={exportChatLog} className="text-muted-foreground hover:text-foreground"><Download className="w-5 h-5" /></Button>
-                    <Button variant="ghost" size="icon" onClick={clearConversation} className="text-muted-foreground hover:text-foreground"><Trash2 className="w-5 h-5" /></Button>
-                    <Button variant="ghost" size="icon" onClick={() => setIsChatOpen(false)} className="text-muted-foreground hover:text-foreground"><X className="w-5 h-5" /></Button>
-                </div>
-            </header>
-            <ScrollArea className="flex-grow p-6">
-                <div className="space-y-8">
+                  </div>
+                )}
                 {messages.map((message) => (
                     <div key={message.id} className={`flex items-start gap-4 group ${message.role === 'user' ? 'justify-end' : ''}`}>
                     {message.role === 'model' && (<Avatar className="w-9 h-9"><AvatarFallback className="bg-primary text-primary-foreground"><BotIcon className="w-5 h-5"/></AvatarFallback></Avatar>)}
                     <div className={`flex flex-col items-start max-w-xl ${message.role === 'user' ? 'items-end' : ''}`}>
-                        <Card className={`p-4 shadow-lg ${message.role === 'user' ? 'bg-primary text-primary-foreground rounded-3xl rounded-br-lg' : 'bg-card text-card-foreground rounded-3xl rounded-bl-lg'}`}>
+                        <Card className={`p-4 shadow-lg transition-all hover:scale-[1.02] hover:shadow-xl ${message.role === 'user' ? 'bg-primary text-primary-foreground rounded-3xl rounded-br-lg' : 'bg-card text-card-foreground rounded-3xl rounded-bl-lg'}`}>
                         {message.file && !message.content && (<div className="mb-2">{message.file.type.startsWith('image/') ? (<img src={message.file.url} alt={message.file.name} className="rounded-lg max-h-48" />) : (<div className="p-2 text-sm bg-black/10 text-black/70 rounded-md">{message.file.name}</div>)}</div>)}
                         {editingMessageId === message.id ? (
                             <div className="space-y-2 w-full">
@@ -305,9 +344,9 @@ export default function Chatbot() {
                 {filePreview && (<div className="relative p-2 mb-3 border rounded-lg bg-muted"><div className="flex items-center gap-3 text-sm">{filePreview.type.startsWith('image/') ? (<img src={filePreview.url} alt={filePreview.name} className="w-12 h-12 rounded-md object-cover" />) : (<FileIcon className="w-8 h-8 text-muted-foreground" />)}<span className="font-medium truncate">{filePreview.name}</span></div><Button variant="ghost" size="icon" className="absolute top-1 right-1 w-7 h-7 text-muted-foreground hover:text-foreground" onClick={() => { setSelectedFile(null); setFilePreview(null); }}><X className="w-4 h-4" /></Button></div>)}
                 <div className="relative flex items-center gap-2">
                 <DropdownMenu><DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground rounded-full flex-shrink-0 w-12 h-12"><Paperclip className="w-5 h-5" /></Button></DropdownMenuTrigger><DropdownMenuContent className="bg-popover border text-popover-foreground"><DropdownMenuItem onClick={() => fileInputRef.current?.click()} className="focus:bg-accent"><ImageIcon className="w-4 h-4 mr-2" /> Image</DropdownMenuItem><DropdownMenuItem onClick={() => fileInputRef.current?.click()} className="focus:bg-accent"><FileIcon className="w-4 h-4 mr-2" /> PDF</DropdownMenuItem></DropdownMenuContent></DropdownMenu>
-                <Textarea value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendMessage(); }}} placeholder="Type your message..." className="w-full p-4 pr-16 text-base bg-muted rounded-full border focus:ring-2 focus:ring-ring focus:outline-none resize-none shadow-inner" rows={1}/>
+                <Textarea value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendMessage(input, selectedFile); }}} placeholder="Type your message..." className="w-full p-4 pr-16 text-base bg-muted rounded-full border focus:ring-2 focus:ring-ring focus:outline-none resize-none shadow-inner" rows={1}/>
                 <div className="absolute flex gap-1 transform -translate-y-1/2 right-2 top-1/2">
-                    <Button size="icon" onClick={isGenerating ? handleStopGenerating : handleSendMessage} disabled={!input.trim() && !selectedFile && !isGenerating} className={`w-12 h-12 rounded-full text-white transition-all duration-300 ${isGenerating ? 'bg-red-500 hover:bg-red-600' : 'bg-primary text-primary-foreground hover:scale-110'}`}>{isGenerating ? <Square className="w-5 h-5" /> : <Send className="w-5 h-5" />}</Button>
+                    <Button size="icon" onClick={() => handleSendMessage(input, selectedFile)} disabled={!input.trim() && !selectedFile && !isGenerating} className={`w-12 h-12 rounded-full text-white transition-all duration-300 ${isGenerating ? 'bg-red-500 hover:bg-red-600' : 'bg-primary text-primary-foreground hover:scale-110'}`}>{isGenerating ? <Square className="w-5 h-5" /> : <Send className="w-5 h-5" />}</Button>
                 </div>
                 <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/*,application/pdf"/>
                 </div>
