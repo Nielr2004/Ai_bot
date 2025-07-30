@@ -53,20 +53,21 @@ export async function POST(request: Request) {
                 result = await chat.sendMessageStream(promptParts);
                 break; // Success, exit the loop
             } catch (error: any) {
-                // Check if the error is a 503 "Service Unavailable"
                 if (error.status === 503 && attempt < maxRetries - 1) {
                     console.log(`Attempt ${attempt + 1} failed: Model overloaded. Retrying in ${delay / 1000}s...`);
                     await sleep(delay);
                     delay *= 2; // Double the delay for the next attempt
                     attempt++;
                 } else {
-                    throw error; // Re-throw other errors or if max retries are reached
+                    // If it's the last attempt or a different error, re-throw to be caught by the outer catch block
+                    throw error;
                 }
             }
         }
 
         if (!result) {
-            throw new Error("Failed to get a response from the API after multiple retries.");
+            // This will now only be reached if all retries fail with a 503 error
+            throw new Error("The AI model is currently overloaded. Please try again in a few moments.");
         }
 
         // Create a new ReadableStream to send the response
@@ -94,8 +95,12 @@ export async function POST(request: Request) {
             headers: { 'Content-Type': 'text/plain; charset=utf-8' },
         });
 
-    } catch (error) {
+    } catch (error: any) {
         console.error("Chat API error:", error);
+        // Provide a more specific error message to the frontend
+        if (error.status === 503 || error.message.includes("overloaded")) {
+            return new NextResponse("The AI model is currently busy. Please try again in a moment.", { status: 503 });
+        }
         return new NextResponse("An internal server error occurred.", { status: 500 });
     }
 }
