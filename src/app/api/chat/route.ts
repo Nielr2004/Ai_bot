@@ -1,6 +1,8 @@
 import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from '@google/generative-ai';
 import { NextResponse } from 'next/server';
-import pdf from 'pdf-parse';
+import { extractText } from 'pdf-ts'; // Using a new, more reliable PDF library
+import axios from 'axios';
+import cheerio from 'cheerio';
 
 // Initialize Gemini AI
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
@@ -13,16 +15,20 @@ const safetySettings = [
   { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE },
 ];
 
-// Helper to convert a ReadableStream to a buffer
-async function streamToBuffer(stream: ReadableStream): Promise<Buffer> {
-    const reader = stream.getReader();
-    const chunks: Uint8Array[] = [];
-    while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        chunks.push(value);
+// Web Scraper Function
+async function scrapeUrl(url: string) {
+    try {
+        const { data } = await axios.get(url, { headers: { 'User-Agent': 'Mozilla/5.0' } });
+        const $ = cheerio.load(data);
+        let text = '';
+        $('p, h1, h2, h3, article, li').each((i, elem) => {
+            text += $(elem).text() + ' ';
+        });
+        return text.replace(/\s\s+/g, ' ').trim().substring(0, 8000);
+    } catch (error) {
+        console.error(`Error fetching URL ${url}:`, error);
+        return `Error: Could not fetch content from the URL.`;
     }
-    return Buffer.concat(chunks);
 }
 
 export async function POST(request: Request) {
@@ -44,8 +50,8 @@ export async function POST(request: Request) {
                     inlineData: { mimeType: file.type, data: Buffer.from(buffer).toString("base64") },
                 });
             } else if (file.type === 'application/pdf') {
-                const data = await pdf(Buffer.from(buffer));
-                promptParts.push(`\n--- PDF CONTENT ---\n${data.text}\n--- END PDF CONTENT ---\n`);
+                const pdf_text = await extractText(Buffer.from(buffer));
+                promptParts.push(`\n--- PDF CONTENT ---\n${pdf_text}\n--- END PDF CONTENT ---\n`);
             }
         }
         
@@ -53,7 +59,6 @@ export async function POST(request: Request) {
 
         const result = await chat.sendMessageStream(promptParts);
 
-        // Create a new ReadableStream to send the response
         const stream = new ReadableStream({
             async start(controller) {
                 for await (const chunk of result.stream) {
