@@ -50,7 +50,7 @@ export async function POST(request: Request) {
                 break; 
             } catch (error: any) {
                 const errorText = error.toString();
-                if (errorText.includes('503') && attempt < maxRetries - 1) {
+                if (error.status === 503 && attempt < maxRetries - 1) {
                     console.log(`Attempt ${attempt + 1} failed: Model overloaded. Retrying in ${delay / 1000}s...`);
                     await sleep(delay);
                     delay *= 2;
@@ -91,10 +91,14 @@ export async function POST(request: Request) {
 
     } catch (error: any) {
         console.error("Chat API error:", error);
-        const errorMessage = error.toString();
-        if (errorMessage.includes('503') || errorMessage.includes("overloaded")) {
+        
+        if (error.status === 429) {
+            return new NextResponse("You have exceeded your API request limit. Please try again later or check your plan.", { status: 429 });
+        }
+        if (error.status === 503 || error.toString().includes("overloaded")) {
             return new NextResponse("The AI model is currently busy. Please try again in a moment.", { status: 503 });
         }
+
         return new NextResponse("An internal server error occurred.", { status: 500 });
     }
 }
