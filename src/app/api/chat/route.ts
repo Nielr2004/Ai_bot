@@ -1,8 +1,6 @@
 import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from '@google/generative-ai';
 import { NextResponse } from 'next/server';
-import pdf from 'pdf-parse'; // Reverted to pdf-parse for better compatibility
-import axios from 'axios';
-import * as cheerio from 'cheerio'; // Corrected Cheerio import
+import pdf from 'pdf-parse';
 
 // Initialize Gemini AI
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
@@ -15,21 +13,8 @@ const safetySettings = [
   { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE },
 ];
 
-// Web Scraper Function
-async function scrapeUrl(url: string) {
-    try {
-        const { data } = await axios.get(url, { headers: { 'User-Agent': 'Mozilla/5.0' } });
-        const $ = cheerio.load(data);
-        let text = '';
-        $('p, h1, h2, h3, article, li').each((i, elem) => {
-            text += $(elem).text() + ' ';
-        });
-        return text.replace(/\s\s+/g, ' ').trim().substring(0, 8000);
-    } catch (error) {
-        console.error(`Error fetching URL ${url}:`, error);
-        return `Error: Could not fetch content from the URL.`;
-    }
-}
+// Helper function to introduce a delay
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 export async function POST(request: Request) {
     try {
@@ -57,8 +42,34 @@ export async function POST(request: Request) {
         
         promptParts.push(message);
 
-        const result = await chat.sendMessageStream(promptParts);
+        // --- Exponential Backoff Logic ---
+        let result;
+        const maxRetries = 3;
+        let attempt = 0;
+        let delay = 1000; // Start with a 1-second delay
 
+        while (attempt < maxRetries) {
+            try {
+                result = await chat.sendMessageStream(promptParts);
+                break; // Success, exit the loop
+            } catch (error: any) {
+                // Check if the error is a 503 "Service Unavailable"
+                if (error.status === 503 && attempt < maxRetries - 1) {
+                    console.log(`Attempt ${attempt + 1} failed: Model overloaded. Retrying in ${delay / 1000}s...`);
+                    await sleep(delay);
+                    delay *= 2; // Double the delay for the next attempt
+                    attempt++;
+                } else {
+                    throw error; // Re-throw other errors or if max retries are reached
+                }
+            }
+        }
+
+        if (!result) {
+            throw new Error("Failed to get a response from the API after multiple retries.");
+        }
+
+        // Create a new ReadableStream to send the response
         const stream = new ReadableStream({
             async start(controller) {
                 for await (const chunk of result.stream) {
