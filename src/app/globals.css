@@ -30,48 +30,48 @@
   --radius-xl: calc(var(--radius) + 4px);
 }
 
-/* Black and White Theme */
+/* Updated Gemini/ChatGPT-style Theme */
 :root {
   --radius: 0.75rem;
-  --background: oklch(0.98 0 0); /* Lighter Gray */
-  --foreground: oklch(0.05 0 0); /* Darker Black */
-  --card: oklch(1 0 0); /* White */
-  --card-foreground: oklch(0.05 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.05 0 0);
-  --primary: oklch(0.08 0 0); /* Darker Black */
-  --primary-foreground: oklch(0.99 0 0); /* Lighter White */
+  --background: oklch(0.98 0 0);
+  --foreground: oklch(0.1 0 0);
+  --card: oklch(0.96 0 0);
+  --card-foreground: oklch(0.1 0 0);
+  --popover: oklch(0.96 0 0);
+  --popover-foreground: oklch(0.1 0 0);
+  --primary: oklch(0.45 0.25 260); /* A nice blue for user messages */
+  --primary-foreground: oklch(0.99 0 0);
   --secondary: oklch(0.95 0 0);
-  --secondary-foreground: oklch(0.08 0 0);
+  --secondary-foreground: oklch(0.1 0 0);
   --muted: oklch(0.95 0 0);
   --muted-foreground: oklch(0.4 0 0);
   --accent: oklch(0.95 0 0);
-  --accent-foreground: oklch(0.08 0 0);
-  --destructive: oklch(0.577 0.245 27.325); /* Red for errors */
-  --border: oklch(0.92 0 0);
-  --input: oklch(0.92 0 0);
-  --ring: oklch(0.08 0 0);
+  --accent-foreground: oklch(0.1 0 0);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: oklch(0.9 0 0);
+  --input: oklch(0.9 0 0);
+  --ring: oklch(0.45 0.25 260);
 }
 
 .dark {
-  --background: oklch(0.08 0 0); /* Darker Black */
-  --foreground: oklch(0.99 0 0); /* Lighter White */
-  --card: oklch(0.12 0 0);
+  --background: oklch(0.1 0 0);
+  --foreground: oklch(0.99 0 0);
+  --card: oklch(0.15 0 0);
   --card-foreground: oklch(0.99 0 0);
-  --popover: oklch(0.12 0 0);
+  --popover: oklch(0.15 0 0);
   --popover-foreground: oklch(0.99 0 0);
-  --primary: oklch(0.99 0 0); /* Lighter White */
-  --primary-foreground: oklch(0.08 0 0); /* Darker Black */
-  --secondary: oklch(0.18 0 0);
+  --primary: oklch(0.6 0.25 260);
+  --primary-foreground: oklch(0.08 0 0);
+  --secondary: oklch(0.2 0 0);
   --secondary-foreground: oklch(0.99 0 0);
-  --muted: oklch(0.18 0 0);
+  --muted: oklch(0.2 0 0);
   --muted-foreground: oklch(0.5 0 0);
-  --accent: oklch(0.18 0 0);
+  --accent: oklch(0.2 0 0);
   --accent-foreground: oklch(0.99 0 0);
-  --destructive: oklch(0.704 0.191 22.216); /* Red for errors */
-  --border: oklch(1 0 0 / 15%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.99 0 0);
+  --destructive: oklch(0.704 0.191 22.216);
+  --border: oklch(1 0 0 / 20%);
+  --input: oklch(1 0 0 / 20%);
+  --ring: oklch(0.6 0.25 260);
 }
 
 
@@ -109,30 +109,55 @@ body {
   }
 }
 
-/* Styles for the code copy button */
+/* Updated styles for an icon-based copy button */
 .copy-button {
     position: absolute;
     top: 0.5rem;
     right: 0.5rem;
-    padding: 0.25rem 0.5rem;
-    border-radius: 0.375rem;
-    font-size: 0.75rem;
-    color: oklch(var(--primary-foreground) / 0.7);
-    background-color: oklch(var(--primary) / 0.8);
-    border: 1px solid oklch(var(--border) / 0.5);
-    opacity: 0;
-    transition: opacity 0.2s;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-sm);
+    width: 2rem; /* 32px */
+    height: 2rem; /* 32px */
+    background-color: transparent;
+    border: none;
+    color: oklch(0.7 0 0); /* Muted gray for the icon */
     cursor: pointer;
+    opacity: 0;
+    transition: all 0.2s;
 }
 
-pre:hover .copy-button {
-    opacity: 1;
+.prose pre:hover .copy-button {
+    opacity: 0.6;
 }
 
 .copy-button:hover {
-    background-color: oklch(var(--primary));
-    color: oklch(var(--primary-foreground));
+    opacity: 1;
+    background-color: oklch(1 0 0 / 10%); /* Subtle hover effect */
+    color: oklch(0.9 0 0); /* Lighter gray on hover */
 }
+
+.copy-button svg {
+    width: 1rem; /* 16px */
+    height: 1rem; /* 16px */
+}
+
+/* Styling for code blocks to resemble Gemini/ChatGPT */
+.prose pre {
+    background-color: oklch(0.15 0 0) !important;
+    border: 1px solid oklch(var(--border));
+    border-radius: var(--radius-md);
+    position: relative;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    overflow-x: auto;
+}
+
+.dark .prose pre {
+    background-color: oklch(0.12 0 0) !important;
+}
+
 
 /* Aurora Background for Landing Page */
 .aurora-background {

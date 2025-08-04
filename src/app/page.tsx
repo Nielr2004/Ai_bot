@@ -10,9 +10,31 @@ import { Card } from "@/components/ui/card";
 import { Paperclip, Send, Image as ImageIcon, File as FileIcon, X, BotIcon, User, Download, Trash2, Pencil, Zap, Square, FileText } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { marked } from 'marked';
+import { markedHighlight } from "marked-highlight";
 import hljs from 'highlight.js/lib/core';
+
+// Import languages you need
+import javascript from 'highlight.js/lib/languages/javascript';
+import python from 'highlight.js/lib/languages/python';
+import plaintext from 'highlight.js/lib/languages/plaintext';
+
 import 'highlight.js/styles/atom-one-dark.css';
-import Header from '@/components/Header'; 
+import Header from '@/components/Header';
+
+// --- Register highlight.js languages ---
+hljs.registerLanguage('javascript', javascript);
+hljs.registerLanguage('python', python);
+hljs.registerLanguage('plaintext', plaintext);
+
+
+// --- Configure Marked with highlight.js ---
+marked.use(markedHighlight({
+  langPrefix: 'hljs language-',
+  highlight(code, lang) {
+    const language = hljs.getLanguage(lang) ? lang : 'plaintext';
+    return hljs.highlight(code, { language, ignoreIllegals: true }).value;
+  }
+}));
 
 // --- Type Definitions ---
 interface Message {
@@ -63,34 +85,30 @@ export default function Chatbot() {
   // --- Effects ---
   useEffect(() => {
     setHasMounted(true);
-    marked.setOptions({
-        highlight: function(code: string, lang: string) {
-            const language = hljs.getLanguage(lang) ? lang : 'plaintext';
-            return hljs.highlight(code, { language }).value;
-        },
-    } as any);
   }, []);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
 
-    // Add copy buttons to code blocks after messages render
+    const copyIconSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>`;
+    const checkIconSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>`;
+
     const addCopyButtons = () => {
         chatContainerRef.current?.querySelectorAll('pre').forEach(pre => {
-            if (pre.querySelector('.copy-button')) return; // Avoid adding duplicate buttons
+            if (pre.querySelector('.copy-button')) return;
 
             const button = document.createElement('button');
             button.className = 'copy-button';
-            button.innerText = 'Copy';
-            pre.style.position = 'relative';
+            button.innerHTML = copyIconSvg;
+            
             pre.appendChild(button);
 
             button.addEventListener('click', () => {
                 const code = pre.querySelector('code')?.innerText || '';
                 navigator.clipboard.writeText(code);
-                button.innerText = 'Copied!';
+                button.innerHTML = checkIconSvg;
                 setTimeout(() => {
-                    button.innerText = 'Copy';
+                    button.innerHTML = copyIconSvg;
                 }, 2000);
             });
         });
@@ -275,7 +293,7 @@ export default function Chatbot() {
   if (!hasMounted) return null;
 
   return (
-    <div className={`h-screen w-screen p-4 ${!isChatOpen ? 'aurora-background' : 'bg-background'}`}>
+    <div className={`h-screen w-screen p-8 ${!isChatOpen ? 'aurora-background' : 'bg-background'}`}>
       {!isChatOpen ? (
         <div className="flex h-full w-full flex-col items-center justify-center text-center gap-8 animate-in fade-in zoom-in-95 duration-500">
             <div className="relative float-animation">
@@ -290,7 +308,7 @@ export default function Chatbot() {
             </h1>
         </div>
       ) : (
-        <div className={`w-full max-w-4xl h-full mx-auto transition-all duration-300 animate-in fade-in zoom-in-95`} onDragEnter={handleDragEnter}>
+        <div className={`w-full max-w-5xl h-full mx-auto transition-all duration-300 animate-in fade-in zoom-in-95`} onDragEnter={handleDragEnter}>
           <div className="relative flex flex-col w-full h-full rounded-2xl bg-card/80 text-foreground backdrop-blur-2xl border shadow-2xl overflow-hidden">
             {isDragging && (<div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-black/50 backdrop-blur-sm" onDragLeave={handleDragLeave} onDrop={handleDrop} onDragOver={(e) => e.preventDefault()}><Download className="w-16 h-16 mb-4" /><p className="text-xl font-semibold">Drop your file here</p></div>)}
             <Header 
@@ -320,7 +338,7 @@ export default function Chatbot() {
                     <div key={message.id} className={`flex items-start gap-4 group ${message.role === 'user' ? 'justify-end' : ''}`}>
                     {message.role === 'model' && (<Avatar className="w-9 h-9"><AvatarFallback className="bg-primary text-primary-foreground"><BotIcon className="w-5 h-5"/></AvatarFallback></Avatar>)}
                     <div className={`flex flex-col items-start max-w-xl ${message.role === 'user' ? 'items-end' : ''}`}>
-                        <Card className={`p-4 shadow-lg transition-all hover:scale-[1.02] hover:shadow-xl ${message.role === 'user' ? 'bg-primary text-primary-foreground rounded-3xl rounded-br-lg' : 'bg-card text-card-foreground rounded-3xl rounded-bl-lg'}`}>
+                        <Card className={`p-4 shadow-md ${message.role === 'user' ? 'bg-primary text-primary-foreground rounded-2xl rounded-br-none' : 'bg-card text-card-foreground rounded-2xl rounded-bl-none'}`}>
                         {message.file && !message.content && (<div className="mb-2">{message.file.type.startsWith('image/') ? (<img src={message.file.url} alt={message.file.name} className="rounded-lg max-h-48" />) : (<div className="p-2 text-sm bg-black/10 text-black/70 rounded-md">{message.file.name}</div>)}</div>)}
                         {editingMessageId === message.id ? (
                             <div className="space-y-2 w-full">
@@ -328,7 +346,7 @@ export default function Chatbot() {
                                 <div className="flex justify-end gap-2"><Button size="sm" onClick={submitEdit}>Update</Button><Button size="sm" variant="ghost" onClick={cancelEditing}>Cancel</Button></div>
                             </div>
                         ) : (
-                            <>{message.content ? (<div className="prose prose-sm dark:prose-invert max-w-none" dangerouslySetInnerHTML={{ __html: marked.parse(message.content) }} />) : (<div className="flex items-center gap-2"><div className="w-2 h-2 bg-muted-foreground rounded-full animate-pulse [animation-delay:-0.3s]"></div><div className="w-2 h-2 bg-muted-foreground rounded-full animate-pulse [animation-delay:-0.15s]"></div><div className="w-2 h-2 bg-muted-foreground rounded-full animate-pulse"></div></div>)}</>
+                            <>{message.content ? (<div className="prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: marked.parse(message.content) }} />) : (<div className="flex items-center gap-2"><div className="w-2 h-2 bg-muted-foreground rounded-full animate-pulse [animation-delay:-0.3s]"></div><div className="w-2 h-2 bg-muted-foreground rounded-full animate-pulse [animation-delay:-0.15s]"></div><div className="w-2 h-2 bg-muted-foreground rounded-full animate-pulse"></div></div>)}</>
                         )}
                         </Card>
                         {message.role === 'user' && message.file && (<div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground p-2 bg-muted rounded-md">{message.file.type.startsWith('image/') ? <ImageIcon className="w-4 h-4" /> : <FileText className="w-4 h-4" />}<span>{message.file.name}</span></div>)}
@@ -344,7 +362,7 @@ export default function Chatbot() {
                 {filePreview && (<div className="relative p-2 mb-3 border rounded-lg bg-muted"><div className="flex items-center gap-3 text-sm">{filePreview.type.startsWith('image/') ? (<img src={filePreview.url} alt={filePreview.name} className="w-12 h-12 rounded-md object-cover" />) : (<FileIcon className="w-8 h-8 text-muted-foreground" />)}<span className="font-medium truncate">{filePreview.name}</span></div><Button variant="ghost" size="icon" className="absolute top-1 right-1 w-7 h-7 text-muted-foreground hover:text-foreground" onClick={() => { setSelectedFile(null); setFilePreview(null); }}><X className="w-4 h-4" /></Button></div>)}
                 <div className="relative flex items-center gap-2">
                 <DropdownMenu><DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground rounded-full flex-shrink-0 w-12 h-12"><Paperclip className="w-5 h-5" /></Button></DropdownMenuTrigger><DropdownMenuContent className="bg-popover border text-popover-foreground"><DropdownMenuItem onClick={() => fileInputRef.current?.click()} className="focus:bg-accent"><ImageIcon className="w-4 h-4 mr-2" /> Image</DropdownMenuItem><DropdownMenuItem onClick={() => fileInputRef.current?.click()} className="focus:bg-accent"><FileIcon className="w-4 h-4 mr-2" /> PDF</DropdownMenuItem></DropdownMenuContent></DropdownMenu>
-                <Textarea value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendMessage(input, selectedFile); }}} placeholder="Type your message..." className="w-full p-4 pr-16 text-base bg-muted rounded-full border focus:ring-2 focus:ring-ring focus:outline-none resize-none shadow-inner" rows={1}/>
+                <Textarea value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendMessage(input, selectedFile); }}} placeholder="Type your message..." className="w-full p-4 pr-16 text-base bg-muted rounded-full border focus:ring-2 focus:ring-ring focus:outline-none resize-none shadow-inner h-12" aria-label="Chat input"/>
                 <div className="absolute flex gap-1 transform -translate-y-1/2 right-2 top-1/2">
                     <Button size="icon" onClick={() => handleSendMessage(input, selectedFile)} disabled={!input.trim() && !selectedFile && !isGenerating} className={`w-12 h-12 rounded-full text-white transition-all duration-300 ${isGenerating ? 'bg-red-500 hover:bg-red-600' : 'bg-primary text-primary-foreground hover:scale-110'}`}>{isGenerating ? <Square className="w-5 h-5" /> : <Send className="w-5 h-5" />}</Button>
                 </div>

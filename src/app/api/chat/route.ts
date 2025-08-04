@@ -2,7 +2,12 @@ import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from '@google/ge
 import { NextResponse } from 'next/server';
 import pdf from 'pdf-parse';
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
+// Check for the API key at the start
+if (!process.env.GEMINI_API_KEY) {
+  throw new Error("GEMINI_API_KEY is not defined in the environment variables.");
+}
+
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 const safetySettings = [
   { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE },
@@ -49,8 +54,9 @@ export async function POST(request: Request) {
                 result = await chat.sendMessageStream(promptParts);
                 break; 
             } catch (error: any) {
+                console.error(`Attempt ${attempt + 1} failed:`, error.message);
                 if (error.status === 503 && attempt < maxRetries - 1) {
-                    console.log(`Attempt ${attempt + 1} failed: Model overloaded. Retrying in ${delay / 1000}s...`);
+                    console.log(`Model overloaded. Retrying in ${delay / 1000}s...`);
                     await sleep(delay);
                     delay *= 2;
                     attempt++;
@@ -61,7 +67,7 @@ export async function POST(request: Request) {
         }
 
         if (!result) {
-            throw new Error("The AI model is currently overloaded. Please try again in a few moments.");
+            return new NextResponse("The AI model is currently overloaded. Please try again in a few moments.", { status: 503 });
         }
 
         const stream = new ReadableStream({
@@ -91,8 +97,8 @@ export async function POST(request: Request) {
     } catch (error: any) {
         console.error("Chat API error:", error);
         
-        if (error.status === 400) {
-            return new NextResponse("API key is invalid or expired. Please check your credentials.", { status: 400 });
+        if (error.status === 400 || error.message.includes("API key not valid")) {
+            return new NextResponse("Your API key is invalid or expired. Please check your credentials.", { status: 400 });
         }
         if (error.status === 429) {
             return new NextResponse("You have exceeded your API request limit. Please try again later or check your plan.", { status: 429 });
@@ -101,6 +107,6 @@ export async function POST(request: Request) {
             return new NextResponse("The AI model is currently busy. Please try again in a moment.", { status: 503 });
         }
 
-        return new NextResponse("An internal server error occurred.", { status: 500 });
+        return new NextResponse(`An internal server error occurred: ${error.message}`, { status: 500 });
     }
 }
