@@ -4,6 +4,14 @@ This is a modern, feature-rich chatbot application built with **Next.js** and po
 
 ---
 
+## 🖼️ Images and 🔗 Link
+<img width="1894" height="964" alt="image" src="https://github.com/user-attachments/assets/5c66278d-a4fa-4b43-85a0-9f62681b14b0" />
+<img width="1890" height="967" alt="image" src="https://github.com/user-attachments/assets/1a148d28-167c-486c-99d6-0fdd51ad6509" />
+
+- **Link**: https://ai-bot-xi-beige.vercel.app/
+
+---
+
 ## 🚀 Features
 
 - **Real-Time Streaming**: Get instant, real-time responses from the AI as they are being generated.
